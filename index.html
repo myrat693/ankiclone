@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>AnkiClone — Карточки</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg">
+  <style>
+    :root {
+      --bg: #1a1a1a;
+      --bg2: #242424;
+      --bg3: #2e2e2e;
+      --text: #e8e8e8;
+      --muted: #888;
+      --accent: #4a90d9;
+      --danger: #d94a4a;
+      --success: #4ad94a;
+      --warn: #d9a84a;
+      --radius: 14px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.4);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      overflow-x: hidden;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 24px; margin: 16px 0; font-weight: 600; }
+    h2 { font-size: 18px; margin: 12px 0; font-weight: 500; }
+    .card {
+      background: var(--bg2);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin: 12px 0;
+      box-shadow: var(--shadow);
+    }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 14px 20px;
+      border-radius: var(--radius);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      width: 100%;
+      margin-top: 8px;
+    }
+    button:active { opacity: 0.75; }
+    button.danger { background: var(--danger); }
+    button.success { background: var(--success); color: #000; }
+    button.warn { background: var(--warn); color: #000; }
+    button.secondary { background: var(--bg3); }
+    input, textarea, select {
+      width: 100%;
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid #444;
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 16px;
+      margin: 8px 0;
+      font-family: inherit;
+    }
+    textarea { min-height: 100px; resize: vertical; }
+    .hidden { display: none !important; }
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat { background: var(--bg2); padding: 14px; border-radius: 10px; text-align: center; }
+    .stat-value { font-size: 22px; font-weight: 700; color: var(--accent); }
+    .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .flashcard {
+      min-height: 60vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      cursor: pointer;
+      perspective: 800px;
+    }
+    .flashcard-inner {
+      font-size: 22px;
+      line-height: 1.5;
+      word-break: break-word;
+      max-width: 100%;
+      transition: transform 0.2s;
+    }
+    .flashcard.hint { opacity: 0.6; }
+    .btn-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .deck-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: var(--bg2);
+      border-radius: var(--radius);
+      margin: 8px 0;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+    .deck-name { font-size: 16px; font-weight: 500; }
+    .deck-count { color: var(--muted); font-size: 13px; }
+    .grade-labels { display: flex; justify-content: space-between; margin: 12px 0 4px; font-size: 11px; color: var(--muted); }
+    .progress-bar {
+      height: 6px;
+      background: var(--bg3);
+      border-radius: 3px;
+      margin: 12px 0;
+      overflow: hidden;
+    }
+    .progress-fill { height: 100%; background: var(--accent); transition: width 0.3s; }
+    .toolbar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg2);
+      border-top: 1px solid #333;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 calc(8px + var(--safe-bottom));
+      z-index: 100;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      margin: 0;
+    }
+    .tab.active { color: var(--accent); }
+    .tab-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+    @media (min-width: 720px) {
+      .toolbar { display: none; }
+      body { padding-bottom: 0; }
+    }
+    .nav-btns { display: flex; gap: 10px; margin-top: 12px; }
+    .nav-btns button { flex: 1; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Decks -->
+    <div id="screen-decks">
+      <h1>📚 Мои колоды</h1>
+      <button id="add-deck-btn">+ Новая колода</button>
+      <div id="deck-list"></div>
+    </div>
+
+    <!-- Add Card -->
+    <div id="screen-add" class="hidden">
+      <h1>✏️ Добавить карточку</h1>
+      <select id="deck-select">
+        <option value="">Выберите колоду</option>
+      </select>
+      <textarea id="front" placeholder="Лицевая сторона (вопрос)"></textarea>
+      <textarea id="back" placeholder="Обратная сторона (ответ)"></textarea>
+      <button id="save-card">Сохранить карточку</button>
+      <button id="add-another" class="secondary hidden">+ Добавить ещё</button>
+      <div class="nav-btns">
+        <button id="back-decks" class="secondary">← К колодам</button>
+      </div>
+    </div>
+
+    <!-- Study -->
+    <div id="screen-study" class="hidden">
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
+      <div class="flashcard hint" id="flashcard">
+        <div class="flashcard-inner" id="flashcard-text"></div>
+      </div>
+      <div class="grade-labels"><span>Снова</span><span>Трудно</span><span>Хорошо</span><span>Легко</span></div>
+      <div id="grade-btns" class="btn-row hidden">
+        <button class="danger" data-grade="1">1</button>
+        <button class="warn" data-grade="2">2</button>
+        <button class="success" data-grade="3">3</button>
+        <button class="secondary" data-grade="4">4</button>
+      </div>
+      <div id="study-empty" class="hidden" style="text-align:center; padding:40px 0; color:var(--muted);">
+        <div style="font-size:48px;">🎉</div>
+        <p>Эта колода изучена!</p>
+        <button id="study-back" class="secondary" style="margin-top:20px;">← К колодам</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="screen-stats" class="hidden">
+      <h1>📊 Статистика</h1>
+      <div class="stats">
+        <div class="stat"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Всего карточек</div></div>
+        <div class="stat"><div class="stat-value" id="stat-due">0</div><div class="stat-label">К повторению</div></div>
+        <div class="stat"><div class="stat-value" id="stat-new">0</div><div class="stat-label">Новых</div></div>
+        <div class="stat"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Дней подряд</div></div>
+      </div>
+      <div class="card">
+        <h2>Последние сессии</h2>
+        <div id="session-log" style="color:var(--muted); font-size:13px; line-height:1.6;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom toolbar -->
+  <nav class="toolbar" id="toolbar">
+    <button class="tab active" data-screen="decks"><span class="tab-icon">🏠</span>Колоды</button>
+    <button class="tab" data-screen="add"><span class="tab-icon">➕</span>Добавить</button>
+    <button class="tab" data-screen="stats"><span class="tab-icon">📊</span>Статистика</button>
+  </nav>
+
+  <script>
+    // ===== Storage =====
+    const STORAGE_KEY = 'ankiclone_data';
+    function loadData() {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+      return {
+        decks: {},
+        cards: {},
+        stats: { sessions: [], streak: 0, lastDate: null },
+        currentDeck: null
+      };
+    }
+    function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+    let data = loadData();
+
+    // ===== SM-2 SRS =====
+    function sm2(card, grade) {
+      // grade: 1=Again, 2=Hard, 3=Good, 4=Easy
+      let { interval = 0, ease = 2.5, reps = 0, lapses = 0 } = card.srs || {};
+      const now = Date.now();
+      const day = 86400000;
+
+      if (grade < 3) {
+        // Reset
+        card.srs = { interval: 1, ease: Math.max(1.3, ease - 0.2), reps: 0, lapses: lapses + 1, due: now + day };
+        card.state = 'learning';
+      } else {
+        // Success
+        const factor = [0, 0, 1.3, 2.5, 3.0][grade] || ease;
+        ease = Math.max(1.3, ease + (0.1 - (5 - grade) * (0.08 + (5 - grade) * 0.02)));
+        reps += 1;
+        if (reps === 1) interval = 1;
+        else if (reps === 2) interval = 6;
+        else interval = Math.round(interval * ease);
+        const due = now + interval * day;
+        card.srs = { interval, ease: Math.round(ease * 100) / 100, reps, lapses, due };
+        card.state = 'review';
+      }
+    }
+    function isDue(card) {
+      if (!card.srs || !card.srs.due) return true;
+      return Date.now() >= card.srs.due;
+    }
+    function dueCount(deckId) {
+      const deckCards = Object.entries(data.cards).filter(([, c]) => c.deckId === deckId);
+      return deckCards.filter(([, c]) => isDue(c)).length;
+    }
+    function newCount(deckId) {
+      return Object.entries(data.cards).filter(([, c]) => c.deckId === deckId && (!c.srs || c.srs.reps === 0)).length;
+    }
+
+    // ===== Navigation =====
+    function showScreen(name) {
+      ['decks', 'add', 'study', 'stats'].forEach(s => {
+        document.getElementById('screen-' + s).classList.toggle('hidden', s !== name);
+      });
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.screen === name));
+
+      if (name === 'decks') renderDecks();
+      if (name === 'add') populateDeckSelect();
+      if (name === 'stats') renderStats();
+    }
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => showScreen(tab.dataset.screen));
+    });
+
+    // ===== Decks =====
+    function renderDecks() {
+      const list = document.getElementById('deck-list');
+      const deckIds = Object.keys(data.decks);
+      if (deckIds.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--muted)">Нет колод<br><small>Создайте первую колоду</small></div>';
+        return;
+      }
+      list.innerHTML = deckIds.map(id => {
+        const deck = data.decks[id];
+        const due = dueCount(id);
+        return `<div class="deck-item" data-id="${id}">
+          <div>
+            <div class="deck-name">${escape(deck.name)}</div>
+            <div class="deck-count">${deck.cards?.length || 0} карточек • ${due} к повторению</div>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="success" style="padding:10px 14px;margin:0;flex:0 0 auto;" data-study="${id}">▶</button>
+            <button class="danger" style="padding:10px 14px;margin:0;flex:0 0 auto;" data-delete="${id}">✕</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      list.querySelectorAll('[data-study]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          startStudy(btn.dataset.study);
+        });
+      });
+      list.querySelectorAll('[data-delete]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          e.stopPropagation();
+          if (confirm('Удалить колоду и все карточки?')) {
+            delete data.decks[btn.dataset.delete];
+            Object.keys(data.cards).forEach(cid => {
+              if (data.cards[cid].deckId === btn.dataset.delete) delete data.cards[cid];
+            });
+            saveData(data);
+            renderDecks();
+          }
+        });
+      });
+    }
+
+    document.getElementById('add-deck-btn').addEventListener('click', () => {
+      const name = prompt('Название колоды:');
+      if (name?.trim()) {
+        const id = 'deck_' + Date.now();
+        data.decks[id] = { name: name.trim(), cards: [] };
+        saveData(data);
+        renderDecks();
+      }
+    });
+
+    // ===== Add Card =====
+    function populateDeckSelect() {
+      const sel = document.getElementById('deck-select');
+      const cur = data.currentDeck || '';
+      sel.innerHTML = '<option value="">Выберите колоду</option>' +
+        Object.entries(data.decks).map(([id, d]) =>
+          `<option value="${id}" ${id === cur ? 'selected' : ''}>${escape(d.name)}</option>`
+        ).join('');
+    }
+    function clearAddForm() {
+      document.getElementById('front').value = '';
+      document.getElementById('back').value = '';
+      document.getElementById('add-another').classList.add('hidden');
+    }
+    document.getElementById('save-card').addEventListener('click', () => {
+      const deckId = document.getElementById('deck-select').value;
+      const front = document.getElementById('front').value.trim();
+      const back = document.getElementById('back').value.trim();
+      if (!deckId) { alert('Выберите колоду'); return; }
+      if (!front || !back) { alert('Заполните обе стороны'); return; }
+      const id = 'card_' + Date.now();
+      data.cards[id] = { id, deckId, front, back, created: Date.now(), state: 'new', srs: null };
+      if (!data.decks[deckId].cards) data.decks[deckId].cards = [];
+      data.decks[deckId].cards.push(id);
+      data.currentDeck = deckId;
+      saveData(data);
+      clearAddForm();
+      document.getElementById('add-another').classList.remove('hidden');
+    });
+    document.getElementById('add-another').addEventListener('click', clearAddForm);
+    document.getElementById('back-decks').addEventListener('click', () => showScreen('decks'));
+
+    // ===== Study =====
+    let studySession = { deckId: null, queue: [], idx: 0, correct: 0, total: 0 };
+    function startStudy(deckId) {
+      const deckCards = Object.entries(data.cards)
+        .filter(([, c]) => c.deckId === deckId)
+        .filter(([, c]) => isDue(c));
+
+      if (deckCards.length === 0) {
+        alert('Нет карточек для повторения. Добавьте карточки или подождите следующего повторения.');
+        return;
+      }
+
+      // Shuffle
+      studySession = {
+        deckId,
+        queue: shuffle(deckCards.map(([id]) => id)),
+        idx: 0,
+        correct: 0,
+        total: deckCards.length
+      };
+      showScreen('study');
+      renderFlashcard();
+    }
+    function renderFlashcard() {
+      const empty = document.getElementById('study-empty');
+      const cardEl = document.getElementById('flashcard');
+      const gradeBtns = document.getElementById('grade-btns');
+      const textEl = document.getElementById('flashcard-text');
+
+      if (studySession.idx >= studySession.queue.length) {
+        cardEl.classList.add('hidden');
+        gradeBtns.classList.add('hidden');
+        empty.classList.remove('hidden');
+        document.getElementById('progress-fill').style.width = '100%';
+        // Save streak
+        const today = new Date().toISOString().slice(0, 10);
+        const last = data.stats.lastDate;
+        if (last !== today) {
+          if (!last || (new Date(today) - new Date(last)) / 86400000 <= 1) data.stats.streak++;
+          else data.stats.streak = 1;
+          data.stats.lastDate = today;
+        }
+        data.stats.sessions.unshift({
+          date: today,
+          deck: data.decks[studySession.deckId]?.name,
+          correct: studySession.correct,
+          total: studySession.total
+        });
+        if (data.stats.sessions.length > 50) data.stats.sessions = data.stats.sessions.slice(0, 50);
+        saveData(data);
+        return;
+      }
+      empty.classList.add('hidden');
+      cardEl.classList.remove('hidden');
+      gradeBtns.classList.add('hidden');
+      cardEl.classList.add('hint');
+      const card = data.cards[studySession.queue[studySession.idx]];
+      textEl.textContent = card.front;
+      const progress = ((studySession.idx) / studySession.total) * 100;
+      document.getElementById('progress-fill').style.width = progress + '%';
+    }
+    document.getElementById('flashcard').addEventListener('click', () => {
+      const card = data.cards[studySession.queue[studySession.idx]];
+      if (!card) return;
+      const textEl = document.getElementById('flashcard-text');
+      const cardEl = document.getElementById('flashcard');
+      if (cardEl.classList.contains('hint')) {
+        textEl.textContent = card.back;
+        cardEl.classList.remove('hint');
+        document.getElementById('grade-btns').classList.remove('hidden');
+      }
+    });
+    document.querySelectorAll('#grade-btns button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const grade = parseInt(btn.dataset.grade);
+        const card = data.cards[studySession.queue[studySession.idx]];
+        if (!card) return;
+        if (grade >= 3) studySession.correct++;
+        sm2(card, grade);
+        saveData(data);
+        studySession.idx++;
+        document.getElementById('grade-btns').classList.add('hidden');
+        renderFlashcard();
+      });
+    });
+    document.getElementById('study-back').addEventListener('click', () => showScreen('decks'));
+
+    // ===== Stats =====
+    function renderStats() {
+      const cards = Object.values(data.cards);
+      const due = cards.filter(isDue).length;
+      const newCards = cards.filter(c => !c.srs || c.srs.reps === 0).length;
+      document.getElementById('stat-total').textContent = cards.length;
+      document.getElementById('stat-due').textContent = due;
+      document.getElementById('stat-new').textContent = newCards;
+      document.getElementById('stat-streak').textContent = data.stats.streak;
+      const log = data.stats.sessions.slice(0, 10);
+      document.getElementById('session-log').innerHTML = log.length === 0
+        ? 'Нет данных'
+        : log.map(s => `<div>${s.date} • ${s.deck} • ${s.correct}/${s.total} ✓</div>`).join('');
+    }
+
+    // ===== Utils =====
+    function escape(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    // ===== PWA =====
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
+    // Init
+    showScreen('decks');
+  </script>
+</body>
+</html>
