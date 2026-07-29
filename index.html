@@ -442,11 +442,16 @@
     // ===== Study =====
     let studySession = { deckId: null, queue: [], idx: 0, correct: 0, total: 0 };
     const speech = window.speechSynthesis;
+    function langFor(text) {
+      const latin = (text.match(/[A-Za-z]/g) || []).length;
+      const cyril = (text.match(/[А-Яа-яЁё]/g) || []).length;
+      return latin > cyril ? 'en-US' : 'ru-RU';
+    }
     function speak(text, onEnd) {
       if (!speech) return;
       speech.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'ru-RU';
+      u.lang = langFor(text);
       u.rate = 0.95;
       u.pitch = 1;
       u.volume = 1;
