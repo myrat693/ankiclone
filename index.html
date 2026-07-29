@@ -561,6 +561,13 @@
       const progress = ((studySession.idx) / studySession.total) * 100;
       document.getElementById('progress-fill').style.width = progress + '%';
       playCardSound(true);
+      if (!document.getElementById('study-controls-debug')) {
+        const dbg = document.createElement('div');
+        dbg.id = 'study-controls-debug';
+        dbg.style.cssText = 'padding:8px 10px;background:#00000088;color:#fff;border-radius:10px;margin-top:10px;font-size:13px;';
+        dbg.textContent = 'DEBUG study-controls here';
+        document.getElementById('flashcard').after(dbg);
+      }
     }
     document.getElementById('flashcard').addEventListener('click', e => {
       if (e.target.id === 'speak-btn') return;
