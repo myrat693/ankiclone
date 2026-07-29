@@ -303,6 +303,16 @@
         <div class="stat"><div class="stat-value" id="stat-streak">0</div><div class="stat-label">Дней подряд</div></div>
       </div>
       <div class="card">
+        <h2>Резервное копирование</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="export-data" class="success" style="flex:1;min-width:120px;margin:0;">📤 Экспорт</button>
+          <label class="secondary" style="flex:1;min-width:120px;text-align:center;padding:14px;border-radius:14px;cursor:pointer;margin:0;">
+            📥 Импорт
+            <input type="file" id="import-data" accept="application/json" style="display:none">
+          </label>
+        </div>
+      </div>
+      <div class="card">
         <h2>Последние сессии</h2>
         <div id="session-log" style="color:var(--muted); font-size:13px; line-height:1.6;"></div>
       </div>
@@ -415,10 +425,15 @@
       list.querySelectorAll('[data-delete]').forEach(btn => {
         btn.addEventListener('click', e => {
           e.stopPropagation();
-          if (confirm('Удалить колоду и все карточки?')) {
-            delete data.decks[btn.dataset.delete];
+          const did = btn.dataset.delete;
+          const n = Object.keys(data.cards).filter(cid => data.cards[cid].deckId === did).length;
+          const msg = n > 0
+            ? `Удалить колоду "${escape(data.decks[did].name)}" и ${n} карточек? Сначала можно экспортировать.`
+            : `Удалить колоду "${escape(data.decks[did].name)}"?`;
+          if (confirm(msg)) {
+            delete data.decks[did];
             Object.keys(data.cards).forEach(cid => {
-              if (data.cards[cid].deckId === btn.dataset.delete) delete data.cards[cid];
+              if (data.cards[cid].deckId === did) delete data.cards[cid];
             });
             saveData(data);
             renderDecks();
@@ -620,6 +635,34 @@
         ? 'Нет данных'
         : log.map(s => `<div>${s.date} • ${s.deck} • ${s.correct}/${s.total} ✓</div>`).join('');
     }
+
+    // ===== Export / Import =====
+    document.getElementById('export-data')?.addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `ankiclone-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    document.getElementById('import-data')?.addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!imported.decks || !imported.cards) throw new Error('Bad format');
+          data = imported;
+          saveData(data);
+          alert('Импорт завершён');
+          renderStats();
+        } catch (err) {
+          alert('Ошибка импорта: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
 
     // ===== Utils =====
     function escape(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
