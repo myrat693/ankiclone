@@ -257,14 +257,13 @@
     <div id="screen-study" class="hidden">
       <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
       <div class="flashcard hint" id="flashcard">
-        <button class="speak-btn" id="speak-btn" title="Озвучить">🔊</button>
-        <div class="flashcard-inner" id="flashcard-text"></div>
-      </div>
-      <div class="study-controls">
-        <label class="toggle-wrap">
-          <input type="checkbox" id="auto-play" class="toggle" />
-          Автовоспроизведение
-        </label>
+        <div style="position:absolute;top:14px;right:14px;display:flex;gap:8px;align-items:center;z-index:5;">
+          <label class="toggle-wrap" style="color:#fff;font-size:12px;">
+            <input type="checkbox" id="auto-play" class="toggle" /> Авто
+          </label>
+          <button class="speak-btn" id="speak-btn" title="Озвучить" style="position:static;width:40px;height:40px;font-size:18px;">🔊</button>
+        </div>
+        <div class="flashcard-inner" id="flashcard-text" style="padding-top:20px;"></div>
       </div>
       <div class="grade-labels"><span>Снова</span><span>Трудно</span><span>Хорошо</span><span>Легко</span></div>
       <div id="grade-btns" class="btn-row hidden">
