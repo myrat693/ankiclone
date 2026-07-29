@@ -148,6 +148,61 @@
     }
     .tab.active { color: var(--accent); }
     .tab-icon { font-size: 20px; display: block; margin-bottom: 2px; }
+    .speak-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid #444;
+      border-radius: 50%;
+      width: 42px;
+      height: 42px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin: 0;
+    }
+    .study-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 10px 0;
+      justify-content: space-between;
+    }
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .toggle {
+      appearance: none;
+      width: 44px;
+      height: 26px;
+      background: #444;
+      border-radius: 999px;
+      position: relative;
+      outline: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle:checked { background: var(--accent); }
+    .toggle:checked::after { transform: translateX(18px); }
     @media (min-width: 720px) {
       .toolbar { display: none; }
       body { padding-bottom: 0; }
@@ -184,7 +239,14 @@
     <div id="screen-study" class="hidden">
       <div class="progress-bar"><div id="progress-fill" class="progress-fill" style="width:0%"></div></div>
       <div class="flashcard hint" id="flashcard">
+        <button class="speak-btn" id="speak-btn" title="Озвучить">🔊</button>
         <div class="flashcard-inner" id="flashcard-text"></div>
+      </div>
+      <div class="study-controls">
+        <label class="toggle-wrap">
+          <input type="checkbox" id="auto-play" class="toggle" />
+          Автовоспроизведение
+        </label>
       </div>
       <div class="grade-labels"><span>Снова</span><span>Трудно</span><span>Хорошо</span><span>Легко</span></div>
       <div id="grade-btns" class="btn-row hidden">
@@ -378,17 +440,44 @@
 
     // ===== Study =====
     let studySession = { deckId: null, queue: [], idx: 0, correct: 0, total: 0 };
+    const speech = window.speechSynthesis;
+    function speak(text, onEnd) {
+      if (!speech) return;
+      speech.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ru-RU';
+      u.rate = 0.95;
+      u.pitch = 1;
+      u.volume = 1;
+      u.onend = onEnd;
+      speech.speak(u);
+    }
+    function currentCard() { return data.cards[studySession.queue[studySession.idx]]; }
+    function playCardSound(auto) {
+      const card = currentCard();
+      if (!card) return;
+      const el = document.getElementById('flashcard');
+      const textEl = document.getElementById('flashcard-text');
+      const autoCb = document.getElementById('auto-play');
+      const autoOn = !!autoCb?.checked;
+      if (auto && !autoOn) return;
+      if (!el.classList.contains('hint')) return;
+      speak(card.front, () => {
+        if (!auto || !autoOn) return;
+        setTimeout(() => {
+          if (el.classList.contains('hint')) return;
+          speak(card.back);
+        }, 280);
+      });
+    }
     function startStudy(deckId) {
       const deckCards = Object.entries(data.cards)
         .filter(([, c]) => c.deckId === deckId)
         .filter(([, c]) => isDue(c));
-
       if (deckCards.length === 0) {
         alert('Нет карточек для повторения. Добавьте карточки или подождите следующего повторения.');
         return;
       }
-
-      // Shuffle
       studySession = {
         deckId,
         queue: shuffle(deckCards.map(([id]) => id)),
@@ -410,7 +499,6 @@
         gradeBtns.classList.add('hidden');
         empty.classList.remove('hidden');
         document.getElementById('progress-fill').style.width = '100%';
-        // Save streak
         const today = new Date().toISOString().slice(0, 10);
         const last = data.stats.lastDate;
         if (last !== today) {
@@ -432,26 +520,38 @@
       cardEl.classList.remove('hidden');
       gradeBtns.classList.add('hidden');
       cardEl.classList.add('hint');
-      const card = data.cards[studySession.queue[studySession.idx]];
+      const card = currentCard();
       textEl.textContent = card.front;
       const progress = ((studySession.idx) / studySession.total) * 100;
       document.getElementById('progress-fill').style.width = progress + '%';
+      playCardSound(true);
     }
-    document.getElementById('flashcard').addEventListener('click', () => {
-      const card = data.cards[studySession.queue[studySession.idx]];
+    document.getElementById('flashcard').addEventListener('click', e => {
+      if (e.target.id === 'speak-btn') return;
+      const card = currentCard();
       if (!card) return;
       const textEl = document.getElementById('flashcard-text');
       const cardEl = document.getElementById('flashcard');
-      if (cardEl.classList.contains('hint')) {
-        textEl.textContent = card.back;
-        cardEl.classList.remove('hint');
-        document.getElementById('grade-btns').classList.remove('hidden');
-      }
+      if (!cardEl.classList.contains('hint')) return;
+      textEl.textContent = card.back;
+      cardEl.classList.remove('hint');
+      document.getElementById('grade-btns').classList.remove('hidden');
+      const autoCb = document.getElementById('auto-play');
+      if (autoCb?.checked) setTimeout(() => speak(card.back), 200);
+    });
+    document.getElementById('speak-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      const card = currentCard();
+      if (!card) return;
+      const el = document.getElementById('flashcard');
+      const text = el.classList.contains('hint') ? card.front : card.back;
+      speak(text);
     });
     document.querySelectorAll('#grade-btns button').forEach(btn => {
       btn.addEventListener('click', () => {
+        speech.cancel();
         const grade = parseInt(btn.dataset.grade);
-        const card = data.cards[studySession.queue[studySession.idx]];
+        const card = currentCard();
         if (!card) return;
         if (grade >= 3) studySession.correct++;
         sm2(card, grade);
